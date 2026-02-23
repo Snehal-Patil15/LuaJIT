@@ -542,6 +542,14 @@ local function parse_mask2(mask)
   end
 end
 
+local function parse_condition_mask(mask)
+  local m = parse_number(mask)
+  if m >= 0 and m <= 15 then
+    return m
+  end
+  werror("Mask value should be 0-15: ", m)
+end
+
 local function parse_label(label, def)
   local prefix = sub(label, 1, 2)
   -- =>label (pc label reference)
@@ -637,7 +645,6 @@ map_op = {
   basr_2 =	"000000000d00RR",
   bassm_2 =	"000000000c00RR",
   bc_2 =	"000047000000RX-b",
-  bc_2 =	"000047000000RX-b",
   bcr_2 =	"000000000700RR",
   bct_2 =	"000046000000RX-a",
   bctg_2 =	"e30000000046RXY-a",
@@ -646,7 +653,6 @@ map_op = {
   bras_2 =	"0000a7050000RI-b",
   brasl_2 =	"c00500000000RIL-b",
   brc_2 =	"0000a7040000RI-c",
-  brcl_2 =	"c00400000000RIL-c",
   brcl_2 =	"c00400000000RIL-c",
   brct_2 =	"0000a7060000RI-b",
   brctg_2 =	"0000a7070000RI-b",
@@ -730,6 +736,7 @@ map_op = {
   clclu_3 =	"eb000000008fRSY-a",
   clfi_2 =	"c20f00000000RIL-a",
   clg_2 =	"e30000000021RXY-a",
+  clgdbr_3 =    "0000b3ad0000RRF-e",
   clgf_2 =	"e30000000031RXY-a",
   clgfi_2 =	"c20e00000000RIL-a",
   clgfr_2 =	"0000b9310000RRE",
@@ -825,6 +832,7 @@ map_op = {
   esxtr_2 =	"0000b3ef0000RRE",
   ex_2 =	"000044000000RX-a",
   exrl_2 =	"c60000000000RIL-b",
+  fidbra_4 =	"0000b35f0000RRF-e",
   fidr_2 =	"0000b37f0000RRE",
   fier_2 =	"0000b3770000RRE",
   fixr_2 =	"0000b3670000RRE",
@@ -966,6 +974,7 @@ map_op = {
   lnxr_2 =	"0000b3610000RRE",
   loc_3 =	"eb00000000f2RSY-b",
   locg_3 =	"eb00000000e2RSY-b",
+  locgr_3 =	"0000b9e20000RRF-c",
   lpdbr_2 =	"0000b3100000RRE",
   lpdfr_2 =	"0000b3700000RRE",
   lpdr_2 =	"000000002000RR",
@@ -1330,6 +1339,10 @@ local function parse_template(params, template, nparams, pos)
     wputhw(op1)
     op2 = op2 + shl(parse_reg(params[1]), 4) + shl(parse_reg(params[2]), 12) + parse_reg(params[3]) + shl(parse_mask(params[4]), 8)
     wputhw(op2)
+  elseif p == "RRF-c" then
+    wputhw(op1)
+    op2 = op2 + shl(parse_reg(params[1]), 4) + parse_reg(params[2]) + shl(parse_condition_mask(params[3]), 12)
+    wputhw(op2)
   elseif p == "RRF-e" then
     wputhw(op1)
     op2 = op2 + shl(parse_reg(params[1]), 4) + shl(parse_mask(params[2]), 12) + parse_reg(params[3])
@@ -1348,7 +1361,7 @@ local function parse_template(params, template, nparams, pos)
       op2 = op2 + shl(b, 12) + d
     end
     wputhw(op1); wputhw(op2)
-    if a then a() end 
+    if a then a() end
   elseif p == "RS-b" then
     local m = parse_mask(params[2])
     local d, b, a = parse_mem_b(params[3])
@@ -1436,7 +1449,7 @@ local function parse_template(params, template, nparams, pos)
     op1 = op1 + shl(b, 12) + band(d, 0xfff)
     op2 = op2 + band(shr(d, 4), 0xff00)
     wputhw(op1); wputhw(op2)
-    if a then a() end 
+    if a then a() end
   elseif p == "SS-a" then
     local d1, l1, b1, d1a, l1a = parse_mem_lb(params[1])
     local d2, b2, d2a = parse_mem_b(params[2])
